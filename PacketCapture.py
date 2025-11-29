@@ -1,4 +1,5 @@
-from scapy.all import sniff, IP, TCP
+
+from scapy.all import sniff, IP, TCP, UDP, Ether
 import threading
 import queue
 
@@ -26,10 +27,11 @@ class PacketCapture:
             except queue.Full:
                 print("[!] Warning: Packet queue is full. Dropping packet.")
 
-    def start_capture(self):
+    def start_capture(self, interface):
         """
         Starts packet sniffing in a separate thread.
         """
+        self.interface = interface
         print(f"[+] Starting packet capture on interface {self.interface}...")
 
         def capture_thread():
