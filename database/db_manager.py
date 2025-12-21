@@ -2,9 +2,10 @@ import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from datetime import datetime, timedelta
-from database.models import Base, Alert, BlockedIP
+from database.models import Base, Alert, BlockedIP, User
 from ConfigManager import config
 import os
+
 
 class DBManager:
     _instance = None
@@ -27,6 +28,10 @@ class DBManager:
         self.engine = create_engine(db_conn_string, connect_args={'check_same_thread': False})
         Base.metadata.create_all(self.engine)
         self.Session = scoped_session(sessionmaker(bind=self.engine))
+        
+        # Create default admin user if no users exist
+        self.create_default_user()
+
 
     def get_session(self):
         return self.Session()
@@ -87,6 +92,47 @@ class DBManager:
             }
         finally:
             session.close()
+    
+    # Authentication Methods
+    def create_default_user(self):
+        """Create default admin user if no users exist"""
+        session = self.Session()
+        try:
+            user_count = session.query(User).count()
+            if user_count == 0:
+                admin = User(username='admin')
+                admin.set_password('admin123')
+                session.add(admin)
+                session.commit()
+                print("[+] Default admin user created (username: admin, password: admin123)")
+        except Exception as e:
+            session.rollback()
+            print(f"[-] Error creating default user: {e}")
+        finally:
+            session.close()
+    
+    def get_user_by_username(self, username):
+        """Get user by username"""
+        session = self.Session()
+        try:
+            return session.query(User).filter(User.username == username).first()
+        finally:
+            session.close()
+    
+    def get_user_by_id(self, user_id):
+        """Get user by ID (required by Flask-Login)"""
+        session = self.Session()
+        try:
+            return session.query(User).filter(User.id == user_id).first()
+        finally:
+            session.close()
+    
+    def verify_user(self, username, password):
+        """Verify user credentials"""
+        user = self.get_user_by_username(username)
+        if user and user.check_password(password):
+            return user
+        return None
 
 # Global DB instance
 db = DBManager()

@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, Boolean
 from sqlalchemy.orm import declarative_base
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
 
 Base = declarative_base()
 
@@ -40,3 +42,24 @@ class BlockedIP(Base):
     blocked_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime)
     is_active = Column(Boolean, default=True)
+
+class User(Base, UserMixin):
+    __tablename__ = 'users'
+    
+    id = Column(Integer, primary_key=True)
+    username = Column(String(80), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+    
+    def set_password(self, password):
+        """Hash and set the user's password"""
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        """Verify the password against the stored hash"""
+        return check_password_hash(self.password_hash, password)
+    
+    def get_id(self):
+        """Required by Flask-Login"""
+        return str(self.id)

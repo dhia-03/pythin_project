@@ -25,10 +25,11 @@ detection:
   # Number of failed auth attempts to trigger brute force alert
   brute_force_threshold: 5
 
-# Geolocation Service
-geolocation:
-  enabled: true
-  cache_size: 1000
+# Security Configuration
+security:
+  # Secret key for session management (CHANGE THIS IN PRODUCTION!)
+  # Generate using: python -c "import secrets; print(secrets.token_hex(32))"
+  secret_key: ""  # If empty, a random key will be generated each time
 
 # Notification Channels
 notifications:
