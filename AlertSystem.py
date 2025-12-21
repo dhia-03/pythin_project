@@ -1,16 +1,17 @@
 import logging
 import json
+import requests
 from datetime import datetime
 
 class AlertSystem:
-    def __init__(self, log_file="ids_alerts.log"):
+    def __init__(self, log_file="ids_alerts.log", dashboard_url="http://172.27.252.208:5000/api/alert"):
+        self.dashboard_url = dashboard_url
         self.logger = logging.getLogger("IDS_Alerts")
         self.logger.setLevel(logging.INFO)
 
+        # File Logging
         handler = logging.FileHandler(log_file)
-        formatter = logging.Formatter(
-            '%(asctime)s - %(levelname)s - %(message)s'
-        )
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
@@ -27,17 +28,19 @@ class AlertSystem:
             'details': threat
         }
 
-        # Write normal warning alert
+        # 1. Log to the file (existing behavior)
         self.logger.warning(json.dumps(alert))
+        print(f"[!] Alert Generated: {alert['rule'] or alert['threat_type']}")
+
+        # 2. SEND TO DASHBOARD (The missing link)
+        try:
+            # We use a short timeout so the IDS doesn't lag if the dashboard is closed
+            response = requests.post(self.dashboard_url, json=alert, timeout=0.5)
+            if response.status_code == 200:
+                print("    [+] Alert successfully sent to dashboard.")
+        except Exception as e:
+            print(f"    [-] Could not send alert to dashboard: {e}")
 
         # High-risk notifications
         if alert['confidence'] > 0.8:
-            self.logger.critical(
-                f"High confidence threat detected: {json.dumps(alert)}"
-            )
-
-            # Here you can add:
-            # self.send_slack(alert)
-            # self.send_email(alert)
-            # self.send_telegram(alert)
-            # self.forward_to_siem(alert)
+            self.logger.critical(f"High confidence threat detected: {json.dumps(alert)}")
