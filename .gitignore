@@ -20,7 +20,17 @@ ENV/
 
 # Logs
 *.log
+*.log.bak
 ids_alerts.log
+
+# Database
+*.db
+*.sqlite3
+ids_alerts.db
+
+# Configuration (secrets)
+config.yaml
+.env
 
 # OS
 .DS_Store

@@ -3,9 +3,13 @@ import json
 import requests
 from datetime import datetime
 
+from ConfigManager import config
+from database.db_manager import db
+from NotificationService import notifier
+
 class AlertSystem:
-    def __init__(self, log_file="ids_alerts.log", dashboard_url="http://172.27.252.208:5000/api/alert"):
-        self.dashboard_url = dashboard_url
+    def __init__(self, log_file="ids_alerts.log"):
+        self.dashboard_url = config.get('dashboard.url')
         self.logger = logging.getLogger("IDS_Alerts")
         self.logger.setLevel(logging.INFO)
 
@@ -25,16 +29,31 @@ class AlertSystem:
             'source_ip': packet_info.get('src_ip'),
             'destination_ip': packet_info.get('dst_ip'),
             'confidence': threat.get('confidence', 0.0),
-            'details': threat
+            'details': threat,
+            'severity': 'low' # Default, will be updated by DB logic ideally, but good for now
         }
+        
+        # Calculate severity locally for notification purposes before DB
+        if alert['confidence'] > 0.8: alert['severity'] = 'critical'
+        elif alert['confidence'] > 0.6: alert['severity'] = 'high'
+        elif alert['confidence'] > 0.4: alert['severity'] = 'medium'
 
         # 1. Log to the file (existing behavior)
         self.logger.warning(json.dumps(alert))
         print(f"[!] Alert Generated: {alert['rule'] or alert['threat_type']}")
 
-        # 2. SEND TO DASHBOARD (The missing link)
+        # 2. SAVE TO DATABASE (New)
+        db_alert = db.add_alert(alert)
+        if db_alert:
+            print("    [+] Alert saved to database.")
+
+        # 3. SEND NOTIFICATIONS (New)
+        notifier.send_alert(alert)
+
+        # 4. SEND TO DASHBOARD
         try:
             # We use a short timeout so the IDS doesn't lag if the dashboard is closed
+            # In production, this might be async
             response = requests.post(self.dashboard_url, json=alert, timeout=0.5)
             if response.status_code == 200:
                 print("    [+] Alert successfully sent to dashboard.")

@@ -1,0 +1,50 @@
+# Network Configuration
+network:
+  # Network interface to sniff packets on (e.g., eth0, wlan0)
+  interface: "eth0"
+
+# Dashboard Configuration
+dashboard:
+  host: "0.0.0.0"
+  port: 5000
+  # URL where alerts are posted
+  url: "http://localhost:5000/api/alert"
+
+# Database Configuration
+database:
+  path: "ids_alerts.db"
+
+# Detection Thresholds
+detection:
+  # Number of unique ports accessed by a single IP to trigger port scan alert
+  port_scan_threshold: 10
+  # Number of SYN packets per second to trigger SYN flood alert
+  syn_flood_threshold: 100
+  # Number of requests per second to trigger DDoS alert
+  ddos_threshold: 100
+  # Number of failed auth attempts to trigger brute force alert
+  brute_force_threshold: 5
+
+# Geolocation Service
+geolocation:
+  enabled: true
+  cache_size: 1000
+
+# Notification Channels
+notifications:
+  email:
+    enabled: false
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    sender: "alerts@example.com"
+    password: "your_app_password"
+    recipients:
+      - "admin@example.com"
+  
+  slack:
+    enabled: false
+    webhook_url: ""
+    
+  discord:
+    enabled: false
+    webhook_url: ""

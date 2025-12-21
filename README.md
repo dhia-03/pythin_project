@@ -1,21 +1,32 @@
 # Network Intrusion Detection System (IDS)
 
-A real-time network intrusion detection system with live web dashboard visualization.
+A real-time network intrusion detection system with live web dashboard visualization, database persistence, and multi-channel notifications.
 
 ## 🚀 Features
 
-- **Real-time packet capture** using Scapy
-- **Threat detection** with signature-based rules
-- **Live web dashboard** with WebSocket updates
-- **Port scan detection** with configurable thresholds
-- **Alert logging** and visualization
-- **Modern dark-themed UI** with real-time charts
+- **Real-time Packet Capture**: High-performance sniffing using Scapy
+- **Advanced Threat Detection**:
+  - Port Scan Detection
+  - SYN Flood Detection
+  - DDoS Attack Detection
+  - Configurable thresholds
+- **Live Dashboard**:
+  - Interactive world map (Leaflet.js)
+  - Real-time alert feed
+  - Threat distribution charts
+  - IP Geolocation
+- **Database Persistence**: SQLite storage for alert history and statistics
+- **Notification System**:
+  - Email alerts
+  - Slack webhooks
+  - Discord integration
+- **Export**: Download alerts as CSV
 
 ## 📋 Requirements
 
 - Python 3.8+
 - Root/sudo privileges (required for packet capture)
-- Linux environment recommended
+- `libsodium` (sometimes required for networking libs)
 
 ## 🛠️ Installation
 
@@ -28,7 +39,7 @@ cd pythin_project
 2. Create and activate virtual environment:
 ```bash
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 ```
 
 3. Install dependencies:
@@ -36,58 +47,55 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+4. Configure the system:
+```bash
+cp config.example.yaml config.yaml
+# Edit config.yaml with your settings
+```
+
 ## 🎯 Usage
 
-### Start the Dashboard
+### 1. Start the Dashboard
 ```bash
 python app.py
 ```
-The dashboard will be available at `http://localhost:5000`
+Access at `http://localhost:5000`
 
-### Run the IDS (requires root)
+### 2. Run the IDS (in a new terminal)
+Requires root privileges to capture packets:
 ```bash
+sudo ./venv/bin/python Integration.py
+# OR if using system python
 sudo python Integration.py
 ```
 
-### Run Tests
+### 3. Run Tests
 ```bash
-python test_ids_mock.py
+python test_integration.py
 ```
-
-## 🏗️ Architecture
-
-- **PacketCapture.py** - Network packet sniffing using Scapy
-- **TrafficAnalyzer.py** - Packet feature extraction
-- **DetectionEngine.py** - Threat detection logic
-- **AlertSystem.py** - Alert generation and logging
-- **Integration.py** - Main orchestrator
-- **app.py** - Flask web dashboard with SocketIO
 
 ## ⚙️ Configuration
 
-Edit the following in the source files:
-- Network interface: `Integration.py` (default: `eth0`)
-- Dashboard URL: `AlertSystem.py` and `Integration.py`
-- Detection thresholds: `DetectionEngine.py`
+The system is fully configurable via `config.yaml`:
+- **Network**: Interface selection
+- **Detection**: Customize packet rate thresholds
+- **Notifications**: Enable/disable channels and set credentials
+- **Database**: Path to SQLite file
 
-## 📊 Current Detection Capabilities
+## 🏗️ Architecture
 
-- ✅ Port scan detection
-- 🔄 SYN flood detection (in test phase)
-- 🔜 Anomaly-based detection (planned)
+- **Core**: `PacketCapture.py`, `Integration.py`
+- **Analysis**: `TrafficAnalyzer.py`, `DetectionEngine.py`
+- **Storage**: `database/` (SQLAlchemy models)
+- **Web**: `app.py`, `templates/index.html`
+- **Services**: `ConfigManager.py`, `GeolocateService.py`, `NotificationService.py`
 
 ## 🔒 Security Notes
 
-⚠️ This is an educational/prototype project. For production use:
-- Add authentication to the dashboard
-- Implement HTTPS
-- Use environment variables for configuration
-- Increase detection thresholds
-- Add rate limiting
-
-## 📝 License
-
-MIT License
+⚠️ **Educational Use**: This system is designed for learning and testing. For production:
+- Enable authentication (not included by default)
+- Use a dedicated database (PostgreSQL)
+- Run behind a reverse proxy (Nginx)
 
 ## 👤 Author
 

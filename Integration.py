@@ -4,22 +4,24 @@ from PacketCapture import PacketCapture
 from TrafficAnalyzer import TrafficAnalyzer
 from DetectionEngine import DetectionEngine
 from AlertSystem import AlertSystem
+from ConfigManager import config
 from scapy.all import IP, TCP, UDP
 
 # Initialize components
 analyzer = TrafficAnalyzer()
 detector = DetectionEngine()
-alerter = AlertSystem(dashboard_url="http://172.27.252.208:5000/api/alert")
+alerter = AlertSystem() # URL is now handled by AlertSystem internal config
 
 packet_count = 0
 
 def process_packet(packet):
     global packet_count
-    packet_count += 1
     
     # Heartbeat every 10 packets
     if packet_count % 10 == 0:
         print(f"[*] Processed {packet_count} packets...")
+    
+    packet_count += 1
 
     features = analyzer.analyze_packet(packet)
     if not features:
@@ -35,8 +37,8 @@ def process_packet(packet):
         })
 
 capturer = PacketCapture()
-# Use eth0 or "" to listen on all interfaces
-INTERFACE = "eth0" 
+# Use configured interface
+INTERFACE = config.get('network.interface', 'eth0')
 capturer.start_capture(INTERFACE)
 
 print(f"[+] IDS running on {INTERFACE}...")

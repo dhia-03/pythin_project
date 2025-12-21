@@ -2,6 +2,7 @@
 from scapy.all import sniff, IP, TCP, UDP, Ether
 import threading
 import queue
+from ConfigManager import config
 
 class PacketCapture:
     """
@@ -10,8 +11,8 @@ class PacketCapture:
     by the Detection Engine.
     """
 
-    def __init__(self, interface="eth0", queue_size=5000):
-        self.interface = interface
+    def __init__(self, interface=None, queue_size=5000):
+        self.interface = interface or config.get('network.interface', 'eth0')
         self.packet_queue = queue.Queue(maxsize=queue_size)
         self.stop_capture = threading.Event()
         self.capture_thread = None
