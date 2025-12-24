@@ -49,7 +49,10 @@ class User(Base, UserMixin):
     id = Column(Integer, primary_key=True)
     username = Column(String(80), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=True)
+    role = Column(String(20), default='viewer', nullable=False)  # admin, analyst, viewer
     created_at = Column(DateTime, default=datetime.utcnow)
+    last_login = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
     
     def set_password(self, password):
@@ -63,3 +66,57 @@ class User(Base, UserMixin):
     def get_id(self):
         """Required by Flask-Login"""
         return str(self.id)
+    
+    def to_dict(self):
+        """Convert user to dictionary (excluding password)"""
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'role': self.role,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'is_active': self.is_active
+        }
+
+class AuditLog(Base):
+    __tablename__ = 'audit_logs'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    username = Column(String(80))  # Denormalized for easy viewing
+    action = Column(String(100), nullable=False)  # login, create_user, export_data, etc.
+    details = Column(Text)  # JSON with additional info
+    ip_address = Column(String(45))
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'username': self.username,
+            'action': self.action,
+            'details': self.details,
+            'ip_address': self.ip_address,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None
+        }
+
+class AlertAcknowledgment(Base):
+    __tablename__ = 'alert_acknowledgments'
+    
+    id = Column(Integer, primary_key=True)
+    alert_id = Column(Integer, nullable=False, index=True)
+    user_id = Column(Integer, nullable=False)
+    username = Column(String(80))  # Denormalized
+    notes = Column(Text)
+    acknowledged_at = Column(DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'alert_id': self.alert_id,
+            'user_id': self.user_id,
+            'username': self.username,
+            'notes': self.notes,
+            'acknowledged_at': self.acknowledged_at.isoformat() if self.acknowledged_at else None
+        }

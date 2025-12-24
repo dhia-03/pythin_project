@@ -2,7 +2,7 @@ import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from datetime import datetime, timedelta
-from database.models import Base, Alert, BlockedIP, User
+from database.models import Base, Alert, BlockedIP, User, AuditLog, AlertAcknowledgment
 from ConfigManager import config
 import os
 
@@ -100,11 +100,11 @@ class DBManager:
         try:
             user_count = session.query(User).count()
             if user_count == 0:
-                admin = User(username='admin')
+                admin = User(username='admin', role='admin')
                 admin.set_password('admin123')
                 session.add(admin)
                 session.commit()
-                print("[+] Default admin user created (username: admin, password: admin123)")
+                print("[+] Default admin user created (username: admin, password: admin123, role: admin)")
         except Exception as e:
             session.rollback()
             print(f"[-] Error creating default user: {e}")
@@ -123,16 +123,210 @@ class DBManager:
         """Get user by ID (required by Flask-Login)"""
         session = self.Session()
         try:
-            return session.query(User).filter(User.id == user_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
+            if user:
+                session.refresh(user)
+                session.expunge(user)
+            return user
         finally:
             session.close()
     
     def verify_user(self, username, password):
-        """Verify user credentials"""
-        user = self.get_user_by_username(username)
-        if user and user.check_password(password):
-            return user
-        return None
+        """Verify user credentials and update last_login"""
+        session = self.Session()
+        try:
+            user = session.query(User).filter(User.username == username).first()
+            if user and user.is_active and user.check_password(password):
+                # Update last login
+                user.last_login = datetime.utcnow()
+                session.commit()
+                # Refresh to load all attributes before detaching
+                session.refresh(user)
+                # Make the object usable outside the session
+                session.expunge(user)
+                return user
+            return None
+        except Exception as e:
+            session.rollback()
+            print(f"[-] Error during user verification: {e}")
+            return None
+        finally:
+            session.close()
+    
+    # User Management Methods (RBAC)
+    def create_user(self, username, password, role='viewer', email=None):
+        """Create a new user with specified role"""
+        session = self.Session()
+        try:
+            # Check if username already exists
+            existing = session.query(User).filter(User.username == username).first()
+            if existing:
+                return None, "Username already exists"
+            
+            # Validate role
+            valid_roles = ['admin', 'analyst', 'viewer']
+            if role not in valid_roles:
+                return None, f"Invalid role. Must be one of: {', '.join(valid_roles)}"
+            
+            user = User(username=username, role=role, email=email)
+            user.set_password(password)
+            session.add(user)
+            session.commit()
+            return user, None
+        except Exception as e:
+            session.rollback()
+            print(f"[-] Error creating user: {e}")
+            return None, str(e)
+        finally:
+            session.close()
+    
+    def update_user_role(self, user_id, new_role):
+        """Update user's role"""
+        session = self.Session()
+        try:
+            valid_roles = ['admin', 'analyst', 'viewer']
+            if new_role not in valid_roles:
+                return False, f"Invalid role. Must be one of: {', '.join(valid_roles)}"
+            
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                return False, "User not found"
+            
+            user.role = new_role
+            session.commit()
+            return True, None
+        except Exception as e:
+            session.rollback()
+            print(f"[-] Error updating user role: {e}")
+            return False, str(e)
+        finally:
+            session.close()
+    
+    def list_users(self):
+        """Get all users"""
+        session = self.Session()
+        try:
+            users = session.query(User).all()
+            return [u.to_dict() for u in users]
+        finally:
+            session.close()
+    
+    def deactivate_user(self, user_id):
+        """Deactivate a user (soft delete)"""
+        session = self.Session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                return False, "User not found"
+            
+            user.is_active = False
+            session.commit()
+            return True, None
+        except Exception as e:
+            session.rollback()
+            print(f"[-] Error deactivating user: {e}")
+            return False, str(e)
+        finally:
+            session.close()
+    
+    def activate_user(self, user_id):
+        """Activate a user"""
+        session = self.Session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                return False, "User not found"
+            
+            user.is_active = True
+            session.commit()
+            return True, None
+        except Exception as e:
+            session.rollback()
+            print(f"[-] Error activating user: {e}")
+            return False, str(e)
+        finally:
+            session.close()
+    
+    # Audit Logging
+    def log_audit(self, user_id, username, action, details=None, ip_address=None):
+        """Log user action for audit trail"""
+        session = self.Session()
+        try:
+            log = AuditLog(
+                user_id=user_id,
+                username=username,
+                action=action,
+                details=json.dumps(details) if details else None,
+                ip_address=ip_address
+            )
+            session.add(log)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            print(f"[-] Error logging audit: {e}")
+        finally:
+            session.close()
+    
+    def get_audit_logs(self, limit=100, user_id=None):
+        """Get audit logs"""
+        session = self.Session()
+        try:
+            query = session.query(AuditLog)
+            if user_id:
+                query = query.filter(AuditLog.user_id == user_id)
+            logs = query.order_by(AuditLog.timestamp.desc()).limit(limit).all()
+            return [log.to_dict() for log in logs]
+        finally:
+            session.close()
+    
+    # Alert Acknowledgment
+    def acknowledge_alert(self, alert_id, user_id, username, notes=None):
+        """Acknowledge an alert"""
+        session = self.Session()
+        try:
+            # Check if already acknowledged
+            existing = session.query(AlertAcknowledgment).filter(
+                AlertAcknowledgment.alert_id == alert_id
+            ).first()
+            
+            if existing:
+                return False, "Alert already acknowledged"
+            
+            ack = AlertAcknowledgment(
+                alert_id=alert_id,
+                user_id=user_id,
+                username=username,
+                notes=notes
+            )
+            session.add(ack)
+            session.commit()
+            return True, None
+        except Exception as e:
+            session.rollback()
+            print(f"[-] Error acknowledging alert: {e}")
+            return False, str(e)
+        finally:
+            session.close()
+    
+    def get_alert_acknowledgment(self, alert_id):
+        """Get acknowledgment info for an alert"""
+        session = self.Session()
+        try:
+            ack = session.query(AlertAcknowledgment).filter(
+                AlertAcknowledgment.alert_id == alert_id
+            ).first()
+            return ack.to_dict() if ack else None
+        finally:
+            session.close()
+    
+    def get_acknowledged_alert_ids(self):
+        """Get set of all acknowledged alert IDs"""
+        session = self.Session()
+        try:
+            acks = session.query(AlertAcknowledgment.alert_id).all()
+            return {ack[0] for ack in acks}
+        finally:
+            session.close()
 
 # Global DB instance
 db = DBManager()
