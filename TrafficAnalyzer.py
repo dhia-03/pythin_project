@@ -15,9 +15,14 @@ class TrafficAnalyzer:
 
         if packet.haslayer(TCP):
             features['dst_port'] = int(packet[TCP].dport)
+            features['src_port'] = int(packet[TCP].sport)
             features['protocol'] = 'TCP'
+            # Extract TCP flags - convert to string representation
+            tcp_flags = packet[TCP].flags
+            features['tcp_flags'] = str(tcp_flags)
         elif packet.haslayer(UDP):
             features['dst_port'] = int(packet[UDP].dport)
+            features['src_port'] = int(packet[UDP].sport)
             features['protocol'] = 'UDP'
         else:
             return None
