@@ -104,10 +104,10 @@ class DetectionEngine:
         return False
 
     def _detect_ddos(self, features):
-        dst_ip = features.get('dst_ip')
-        if dst_ip:
-            self.request_tracker[dst_ip] += 1
-            if self.request_tracker[dst_ip] > self.ddos_threshold:
+        src_ip = features.get('src_ip')  # Track the attacker, not the victim
+        if src_ip:
+            self.request_tracker[src_ip] += 1
+            if self.request_tracker[src_ip] > self.ddos_threshold:
                 return True
         return False
 
