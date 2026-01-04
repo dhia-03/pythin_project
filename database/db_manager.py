@@ -164,7 +164,7 @@ class DBManager:
                 return None, "Username already exists"
             
             # Validate role
-            valid_roles = ['admin', 'analyst', 'viewer']
+            valid_roles = ['admin', 'analyst']
             if role not in valid_roles:
                 return None, f"Invalid role. Must be one of: {', '.join(valid_roles)}"
             
@@ -190,7 +190,7 @@ class DBManager:
         """Update user's role"""
         session = self.Session()
         try:
-            valid_roles = ['admin', 'analyst', 'viewer']
+            valid_roles = ['admin', 'analyst']
             if new_role not in valid_roles:
                 return False, f"Invalid role. Must be one of: {', '.join(valid_roles)}"
             

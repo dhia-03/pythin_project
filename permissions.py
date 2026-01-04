@@ -10,25 +10,19 @@ import json
 # Role definitions
 ROLE_ADMIN = 'admin'
 ROLE_ANALYST = 'analyst'
-ROLE_VIEWER = 'viewer'
 
 # Permission mappings
 PERMISSIONS = {
     ROLE_ADMIN: [
         'view_dashboard',
         'export_data',
-        'acknowledge_alerts',
         'manage_users',
         'view_audit_logs',
         'configure_system'
     ],
     ROLE_ANALYST: [
         'view_dashboard',
-        'export_data',
-        'acknowledge_alerts'
-    ],
-    ROLE_VIEWER: [
-        'view_dashboard'
+        'export_data'
     ]
 }
 

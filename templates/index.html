@@ -282,32 +282,6 @@
             color: var(--accent-blue);
         }
 
-        /* Alert acknowledged indicator */
-        .ack-indicator {
-            color: var(--accent-green);
-            font-size: 0.875rem;
-        }
-
-        .btn-acknowledge {
-            padding: 0.375rem 0.75rem;
-            background: var(--accent-purple);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-acknowledge:hover {
-            background: #7c3aed;
-        }
-
-        .btn-acknowledge:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
         /* Charts Section */
         .charts-section {
             display: grid;
@@ -670,9 +644,6 @@
                             <th>Reputation</th>
                             <th>Target IP</th>
                             <th>Confidence</th>
-                            {% if user_role in ['admin', 'analyst'] %}
-                            <th>Action</th>
-                            {% endif %}
                         </tr>
                     </thead>
                     <tbody id="alert-table-body">
@@ -687,7 +658,6 @@
         const socket = io();
         let allAlerts = [];
         const userRole = '{{ user_role }}';
-        const canAcknowledge = ['admin', 'analyst'].includes(userRole);
         const canExport = ['admin', 'analyst'].includes(userRole);
 
         // Chart.js Configuration
@@ -876,27 +846,14 @@
                     `;
                 }
 
-                const isAcknowledged = alert.is_acknowledged || false;
-                const ackIndicator = isAcknowledged ? '<span class="ack-indicator">✓ Ack</span>' : '';
-
-                let actionCell = '';
-                if (canAcknowledge) {
-                    if (isAcknowledged) {
-                        actionCell = '\u003ctd\u003e\u003cspan class="ack-indicator"\u003e✓ Reviewed\u003c/span\u003e\u003c/td\u003e';
-                    } else {
-                        actionCell = `\u003ctd\u003e\u003cbutton class="btn-acknowledge" onclick="acknowledgeAlert(${alert.id})"\u003eAcknowledge\u003c/button\u003e\u003c/td\u003e`;
-                    }
-                }
-
                 row.innerHTML = `
-                    \u003ctd\u003e${formatDate(alert.timestamp)} ${ackIndicator}\u003c/td\u003e
+                    \u003ctd\u003e${formatDate(alert.timestamp)}\u003c/td\u003e
                     \u003ctd\u003e\u003cspan class="badge ${severityBadge}"\u003e${severityText}\u003c/span\u003e\u003c/td\u003e
                     \u003ctd\u003e\u003cspan class="badge badge-type"\u003e${alert.rule || alert.threat_type}\u003c/span\u003e\u003c/td\u003e
                     \u003ctd class="ip-address"\u003e${alert.source_ip}\u003c/td\u003e
                     \u003ctd\u003e${reputationHTML}\u003c/td\u003e
                     \u003ctd class="ip-address"\u003e${alert.destination_ip}\u003c/td\u003e
                     \u003ctd\u003e${Math.round(alert.confidence * 100)}%\u003c/td\u003e
-                    ${actionCell}
                 `;
                 tbody.appendChild(row);
             });
