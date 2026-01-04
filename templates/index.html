@@ -591,8 +591,8 @@
             </div>
             <div class="stat-card">
                 <div class="stat-label">Active Rules</div>
-                <div class="stat-value">3</div>
-                <div class="stat-change">Port Scan, SYN Flood, DDoS</div>
+                <div class="stat-value">2</div>
+                <div class="stat-change">Port Scan, DDoS</div>
             </div>
         </div>
 
@@ -623,7 +623,6 @@
             <select id="filter-type" style="width: 150px;">
                 <option value="all">All Types</option>
                 <option value="port_scan">Port Scan</option>
-                <option value="syn_flood">SYN Flood</option>
                 <option value="ddos">DDoS</option>
             </select>
             <button class="btn btn-primary" onclick="applyFilters()">Apply</button>
@@ -686,10 +685,10 @@
         const threatChart = new Chart(threatCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Port Scan', 'SYN Flood', 'DDoS', 'Other'],
+                labels: ['Port Scan', 'DDoS', 'Other'],
                 datasets: [{
-                    data: [0, 0, 0, 0],
-                    backgroundColor: ['#8b5cf6', '#3b82f6', '#ef4444', '#6b7280'],
+                    data: [0, 0, 0],
+                    backgroundColor: ['#8b5cf6', '#ef4444', '#6b7280'],
                     borderWidth: 0
                 }]
             },
@@ -749,19 +748,19 @@
             const critical = allAlerts.filter(a => a.confidence > 0.8).length;
             document.getElementById('high-risk-count').innerText = critical;
 
-            // Update threat distribution
-            const counts = { port_scan: 0, syn_flood: 0, ddos: 0, other: 0 };
+            // Update threat distribution (exclude syn_flood)
+            const counts = { port_scan: 0, ddos: 0, other: 0 };
             allAlerts.forEach(a => {
                 const type = a.rule || a.threat_type;
+                // Skip syn_flood - it's a subset of DDoS
+                if (type === 'syn_flood') return;
                 if (type === 'port_scan') counts.port_scan++;
-                else if (type === 'syn_flood') counts.syn_flood++;
                 else if (type === 'ddos') counts.ddos++;
                 else counts.other++;
             });
 
             threatChart.data.datasets[0].data = [
                 counts.port_scan,
-                counts.syn_flood,
                 counts.ddos,
                 counts.other
             ];
@@ -793,6 +792,10 @@
             const filterType = document.getElementById('filter-type').value;
 
             const filtered = allAlerts.filter(a => {
+                // Filter out syn_flood alerts (they're redundant with DDoS)
+                const type = a.rule || a.threat_type;
+                if (type === 'syn_flood') return false;
+
                 if (filterIP && !a.source_ip.includes(filterIP)) return false;
                 if (filterType !== 'all' && (a.rule !== filterType && a.threat_type !== filterType)) return false;
                 return true;
