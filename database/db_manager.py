@@ -172,6 +172,12 @@ class DBManager:
             user.set_password(password)
             session.add(user)
             session.commit()
+            
+            # Refresh to load all attributes before detaching
+            session.refresh(user)
+            # Make the object usable outside the session
+            session.expunge(user)
+            
             return user, None
         except Exception as e:
             session.rollback()
