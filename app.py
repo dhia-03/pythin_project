@@ -7,14 +7,31 @@ from ConfigManager import config
 from database.db_manager import db
 from permissions import role_required, permission_required, get_client_ip, ROLE_ADMIN, ROLE_ANALYST
 import requests
+import os
 
 app = Flask(__name__)
 
-# Generate secure secret key or use configured one
+# Generate or load secure secret key
 secret_key = config.get('security.secret_key', None)
 if not secret_key or secret_key.strip() == '':
-    secret_key = secrets.token_hex(32)
+    # Try to load from file, or generate and save one
+    secret_key_file = '.secret_key'
+    if os.path.exists(secret_key_file):
+        with open(secret_key_file, 'r') as f:
+            secret_key = f.read().strip()
+    else:
+        secret_key = secrets.token_hex(32)
+        with open(secret_key_file, 'w') as f:
+            f.write(secret_key)
+        print("[+] Generated new secret key and saved to .secret_key")
+
 app.config['SECRET_KEY'] = secret_key
+
+# Session configuration
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True if using HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
