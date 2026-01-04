@@ -504,6 +504,29 @@
             color: #d1d5db;
         }
 
+        /* Threat Intelligence badges */
+        .badge-threat {
+            background: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            font-weight: 700;
+        }
+
+        .badge-suspicious {
+            background: rgba(245, 158, 11, 0.3);
+            color: #fcd34d;
+        }
+
+        .badge-clean {
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+        }
+
+        .threat-info {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
         .ip-address {
             font-family: 'Monaco', 'Courier New', monospace;
             color: var(--accent-blue);
@@ -644,6 +667,7 @@
                             <th>Severity</th>
                             <th>Type</th>
                             <th>Source IP</th>
+                            <th>Reputation</th>
                             <th>Target IP</th>
                             <th>Confidence</th>
                             {% if user_role in ['admin', 'analyst'] %}
@@ -817,6 +841,41 @@
                     severityText = 'MEDIUM';
                 }
 
+                // Threat Intelligence badge
+                let reputationHTML = '<span class="badge badge-clean">✓ Clean</span>';
+                if (alert.abuse_score !== undefined && alert.abuse_score > 0) {
+                    let repBadge = 'badge-clean';
+                    let repIcon = '✓';
+                    let repText = 'Clean';
+
+                    if (alert.abuse_score >= 75 || alert.is_known_threat) {
+                        repBadge = 'badge-threat';
+                        repIcon = '🚨';
+                        repText = 'THREAT';
+                    } else if (alert.abuse_score >= 50) {
+                        repBadge = 'badge-suspicious';
+                        repIcon = '⚠️';
+                        repText = 'Suspicious';
+                    }
+
+                    let categoryText = '';
+                    if (alert.threat_categories) {
+                        const categories = typeof alert.threat_categories === 'string' ?
+                            JSON.parse(alert.threat_categories) : alert.threat_categories;
+                        if (categories && categories.length > 0) {
+                            categoryText = `<div class="threat-info">${categories.join(', ')}</div>`;
+                        }
+                    }
+
+                    reputationHTML = `
+                        <div>
+                            <span class="badge ${repBadge}">${repIcon} ${repText}</span>
+                            <div class="threat-info">Score: ${alert.abuse_score}%</div>
+                            ${categoryText}
+                        </div>
+                    `;
+                }
+
                 const isAcknowledged = alert.is_acknowledged || false;
                 const ackIndicator = isAcknowledged ? '<span class="ack-indicator">✓ Ack</span>' : '';
 
@@ -834,6 +893,7 @@
                     \u003ctd\u003e\u003cspan class="badge ${severityBadge}"\u003e${severityText}\u003c/span\u003e\u003c/td\u003e
                     \u003ctd\u003e\u003cspan class="badge badge-type"\u003e${alert.rule || alert.threat_type}\u003c/span\u003e\u003c/td\u003e
                     \u003ctd class="ip-address"\u003e${alert.source_ip}\u003c/td\u003e
+                    \u003ctd\u003e${reputationHTML}\u003c/td\u003e
                     \u003ctd class="ip-address"\u003e${alert.destination_ip}\u003c/td\u003e
                     \u003ctd\u003e${Math.round(alert.confidence * 100)}%\u003c/td\u003e
                     ${actionCell}

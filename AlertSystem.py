@@ -6,6 +6,7 @@ from datetime import datetime
 from ConfigManager import config
 from database.db_manager import db
 from NotificationService import notifier
+from ThreatIntelligence import threat_intel
 
 class AlertSystem:
     def __init__(self, log_file="ids_alerts.log"):
@@ -32,6 +33,22 @@ class AlertSystem:
             'details': threat,
             'severity': 'low' # Default, will be updated by DB logic ideally, but good for now
         }
+        
+        # Enrich with threat intelligence
+        source_ip = packet_info.get('src_ip')
+        if source_ip:
+            reputation = threat_intel.check_ip(source_ip)
+            if reputation:
+                alert['abuse_score'] = reputation.get('abuse_score', 0)
+                alert['is_known_threat'] = reputation.get('is_known_threat', False)
+                alert['threat_categories'] = reputation.get('threat_categories', [])
+                alert['total_reports'] = reputation.get('total_reports', 0)
+                
+                if reputation.get('is_known_threat'):
+                    print(f"    [!] Known malicious IP detected! Abuse score: {reputation['abuse_score']}%")
+                    if reputation.get('threat_categories'):
+                        print(f"    [!] Categories: {', '.join(reputation['threat_categories'])}")
+
         
         # Calculate severity locally for notification purposes before DB
         if alert['confidence'] > 0.8: alert['severity'] = 'critical'

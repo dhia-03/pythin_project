@@ -49,3 +49,16 @@ notifications:
   discord:
     enabled: false
     webhook_url: ""
+
+# Threat Intelligence
+threat_intelligence:
+  abuseipdb:
+    # Enable IP reputation checking via AbuseIPDB
+    enabled: false
+    # Get your free API key at https://www.abuseipdb.com/
+    # Free tier: 1,000 checks/day
+    api_key: ""
+    # Cache TTL in seconds (24 hours = 86400)
+    cache_ttl: 86400
+    # Confidence threshold to mark IP as known threat (0-100)
+    confidence_threshold: 75

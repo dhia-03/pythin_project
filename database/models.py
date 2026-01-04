@@ -19,6 +19,12 @@ class Alert(Base):
     details = Column(Text)  # JSON stored as text
     severity = Column(String(20)) # low, medium, high, critical
     is_archived = Column(Boolean, default=False)
+    
+    # Threat Intelligence fields
+    abuse_score = Column(Integer, default=0)  # 0-100 from AbuseIPDB
+    is_known_threat = Column(Boolean, default=False)
+    threat_categories = Column(Text)  # JSON array of categories
+    total_reports = Column(Integer, default=0)  # Total abuse reports
 
     def to_dict(self):
         return {
@@ -30,7 +36,11 @@ class Alert(Base):
             'destination_ip': self.destination_ip,
             'confidence': self.confidence,
             'details': self.details,
-            'severity': self.severity
+            'severity': self.severity,
+            'abuse_score': self.abuse_score,
+            'is_known_threat': self.is_known_threat,
+            'threat_categories': self.threat_categories,
+            'total_reports': self.total_reports
         }
 
 class BlockedIP(Base):
