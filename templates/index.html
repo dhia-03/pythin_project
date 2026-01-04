@@ -951,18 +951,18 @@
 
                 if (response.ok) {
                     // Update the alert in our local array
-                    const alert = allAlerts.find(a => a.id === alertId);
-                    if (alert) {
-                        alert.is_acknowledged = true;
+                    const alertData = allAlerts.find(a => a.id === alertId);
+                    if (alertData) {
+                        alertData.is_acknowledged = true;
                     }
                     renderTable();
                 } else {
                     const error = await response.json();
-                    alert('Error: ' + (error.error || 'Failed to acknowledge alert'));
+                    window.alert('Error: ' + (error.error || 'Failed to acknowledge alert'));
                 }
             } catch (err) {
                 console.error('Error acknowledging alert:', err);
-                alert('Network error');
+                window.alert('Network error: ' + err.message);
             }
         }
     </script>
