@@ -949,6 +949,14 @@
                     headers: { 'Content-Type': 'application/json' }
                 });
 
+                // Check if we got HTML instead of JSON (likely redirected to login)
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('text/html')) {
+                    window.alert('Session expired. Please log in again.');
+                    window.location.href = '/login';
+                    return;
+                }
+
                 if (response.ok) {
                     // Update the alert in our local array
                     const alertData = allAlerts.find(a => a.id === alertId);
@@ -956,6 +964,9 @@
                         alertData.is_acknowledged = true;
                     }
                     renderTable();
+
+                    // Show success message
+                    console.log('Alert acknowledged successfully');
                 } else {
                     const error = await response.json();
                     window.alert('Error: ' + (error.error || 'Failed to acknowledge alert'));
