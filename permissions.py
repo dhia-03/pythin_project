@@ -32,7 +32,7 @@ def has_permission(user, permission):
     if not user or not user.is_authenticated:
         return False
     
-    user_role = getattr(user, 'role', ROLE_VIEWER)
+    user_role = getattr(user, 'role', ROLE_ANALYST)
     return permission in PERMISSIONS.get(user_role, [])
 
 
@@ -47,7 +47,7 @@ def role_required(roles):
             if not current_user.is_authenticated:
                 return jsonify({'error': 'Authentication required'}), 401
             
-            user_role = getattr(current_user, 'role', ROLE_VIEWER)
+            user_role = getattr(current_user, 'role', ROLE_ANALYST)
             
             # If roles is a string, convert to list
             allowed_roles = roles if isinstance(roles, list) else [roles]
